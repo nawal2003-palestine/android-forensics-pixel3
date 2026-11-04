@@ -44,6 +44,8 @@ Process aligned with **NIST SP 800-86** (collection → examination → analysis
 | 4. Second tool | **Autopsy 4.23.1** | Independent processing on Windows |
 | 5. Automation | **Python** (standard library + `pycryptodome`) | Repeatable verification script → rule-based agent → gap explorer |
 
+![ALEAPP case information](screenshots/01-aleapp-case-info.jpg)
+
 **Golden rule followed throughout:** work on copies only, hash before and after every step, confirm every result with a second method.
 
 ---
@@ -72,7 +74,12 @@ Two vault apps used on 2020-10-04: a screenshot hidden in **HLD Vault**, an imag
 ![sqlite_sequence](screenshots/05-sqlite-sequence-deleted-mms.jpg)
 
 ### 5. "Empty" WhatsApp messages were location shares
-ALEAPP displayed 5 WhatsApp messages as empty. Manual SQL on `msgstore.db` (`media_wa_type` 5 and 16) revealed **3 location + 2 live-location shares**, all within ~35 m, captioned *"Here I am!"* / *"Me, too!"* — a meeting being coordinated.
+ALEAPP displayed 5 WhatsApp messages as empty:
+
+![ALEAPP WhatsApp empty rows](screenshots/03-aleapp-whatsapp-empty.jpg)
+
+Manual SQL on `msgstore.db` (`media_wa_type` 5 and 16) revealed **3 location + 2 live-location shares**, all within ~35 m, captioned *"Here I am!"* / *"Me, too!"* — a meeting being coordinated.
+
 
 ![WhatsApp locations](screenshots/06-whatsapp-location-shares.jpg)
 
@@ -135,7 +142,7 @@ python scripts/forensic_agent_v3.py --help
 android-forensics-pixel3/
 ├── README.md
 ├── report/        Android11_Forensic_Report.pdf (full report, 41 pages)
-├── screenshots/   figures used in this README
+├── screenshots/   7 figures taken from the report (used in this README)
 └── scripts/       forensic_agent.py (v1), forensic_agent_v2.py, forensic_agent_v3.py + usage
 ```
 
