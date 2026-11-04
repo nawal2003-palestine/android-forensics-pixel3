@@ -1,9 +1,9 @@
 # 📱 Android 11 Forensic Investigation — Google Pixel 3
 
 > **Summary:** Full forensic examination of a public Android 11 file-system extraction (17.2 GB, [Digital Corpora](https://digitalcorpora.org)) — from integrity verification to a consolidated timeline.
-> **Key results:** evidence proven intact against its 2020 acquisition record · 7 investigation questions answered · **2 findings missed by the automated tool** (a deleted MMS and 5 WhatsApp location shares) · a Python verification agent that reproduces the whole analysis in ~2 minutes.
+> **Key results:** evidence proven intact against its 2020 acquisition record · 7 investigation questions answered · **2 findings missed by the automated tool** (a deleted MMS and 5 WhatsApp location shares) · Python script and agents that reproduce the analysis in ~2 minutes and decrypt 10 WhatsApp backups.
 
-*Academic project — Digital Forensics module, ENSA Tangier. Full report: [`report/Android11_Forensic_Report.pdf`](report/Android11_Forensic_Report.pdf) (40 pages).*
+*Academic project — Digital Forensics module, ENSA Tangier. Full report: [`report/Android11_Forensic_Report.pdf`](report/Android11_Forensic_Report.pdf) (41 pages).*
 
 ---
 
@@ -30,7 +30,7 @@ A company's security team suspects an employee of leaking confidential informati
 | Type | File-system extraction of `/data` (Magnet ACQUIRE, ADB + root) |
 | SHA-256 | `d4cb326a41cca5cc23a2c2cb1908498c7281b1b2fcc0f8781fb6b3945e6c815c` |
 
-> The image is **not** included in this repository. It is publicly available from Digital Corpora for research and education.
+> The image is **not** included in this repository. It is publicly available from Digital Corpora for research and education. Sensitive values from the test phone (passwords, tokens, keys) are redacted in the report.
 
 ## 🛠️ Method & tools
 
@@ -42,7 +42,7 @@ Process aligned with **NIST SP 800-86** (collection → examination → analysis
 | 2. Automated analysis | **ALEAPP** (1,317 modules) | Parse Android artifacts, trace each finding to its source file |
 | 3. Manual verification | **DB Browser for SQLite** + SQL | Cross-validate ALEAPP on `mmssms.db`, `msgstore.db`, `accounts_ce.db` |
 | 4. Second tool | **Autopsy 4.23.1** | Independent processing on Windows |
-| 5. Automation | **Python** (stdlib: `hashlib`, `tarfile`, `sqlite3`) | Repeatable verification script → rule-based agent |
+| 5. Automation | **Python** (standard library + `pycryptodome`) | Repeatable verification script → rule-based agent → gap explorer |
 
 **Golden rule followed throughout:** work on copies only, hash before and after every step, confirm every result with a second method.
 
@@ -67,12 +67,12 @@ Two vault apps used on 2020-10-04: a screenshot hidden in **HLD Vault**, an imag
 ![HLD Vault](screenshots/04-hld-vault-hidden-file.jpg)
 
 ### 4. A deleted MMS — found by manual SQL, not by the tool
-`sqlite_sequence` shows `pdu = 3` while only MMS 1 and 3 exist → **MMS #2 was created then deleted**. Content not recoverable (0 free pages, empty journal), but the trace of deletion is proven.
+`sqlite_sequence` shows `pdu = 3` while only MMS 1 and 3 exist → **MMS #2 was created then deleted**. Content not recoverable (0 free pages, empty journal), but the trace of deletion is proven. This answers the scenario: deleted messages *do* leave recoverable traces, even when their content is gone.
 
 ![sqlite_sequence](screenshots/05-sqlite-sequence-deleted-mms.jpg)
 
 ### 5. "Empty" WhatsApp messages were location shares
-ALEAPP displayed 5 WhatsApp messages as empty. Manual SQL on `msgstore.db` (`media_wa_type` 5 and 16) revealed **3 location + 2 live-location shares**, all within 34 m, captioned *"Here I am!"* / *"Me, too!"* — a meeting being coordinated.
+ALEAPP displayed 5 WhatsApp messages as empty. Manual SQL on `msgstore.db` (`media_wa_type` 5 and 16) revealed **3 location + 2 live-location shares**, all within ~35 m, captioned *"Here I am!"* / *"Me, too!"* — a meeting being coordinated.
 
 ![WhatsApp locations](screenshots/06-whatsapp-location-shares.jpg)
 
@@ -98,6 +98,13 @@ ALEAPP displayed 5 WhatsApp messages as empty. Manual SQL on `msgstore.db` (`med
 
 > Lesson from v2: fixed severity labels flagged normal WhatsApp internal-table gaps as "HIGH deletions" — a **false positive** that led to v3's data-driven scoring. Leads are proposals for the examiner, not findings.
 
+Code and usage: [`scripts/`](scripts/). The scripts only **read** the evidence and re-hash it at the end.
+
+```bash
+pip install pycryptodome        # only needed by v2
+python scripts/forensic_agent_v3.py --help
+```
+
 ## ✅ Answers (summary)
 
 | Q | Answer |
@@ -111,7 +118,7 @@ ALEAPP displayed 5 WhatsApp messages as empty. Manual SQL on `msgstore.db` (`med
 | Q7 | Consolidated timeline 2020-09-11 → 2020-10-05 (report, section 9) |
 
 ## ⚠️ Limitations
-- File-system extraction: no unallocated space, so deleted files cannot be carved.
+- File-system extraction: no unallocated space, so deleted files cannot be carved — deleted records are found only inside databases.
 - Signal, Zoom, Silent Phone and 21 database files are unreadable without keys.
 - Autopsy produced partial results (no SMS) — documented, which is why manual verification mattered.
 - Test data: no intent is attributed to a real person.
@@ -122,6 +129,15 @@ ALEAPP displayed 5 WhatsApp messages as empty. Manual SQL on `msgstore.db` (`med
 - **Time is evidence too**: Android stores some values in UTC and others in local time — the offset had to be proven, not assumed.
 - **Even read-only opening can change files**: SQLite rewrote `msgstore.db-shm` in read-only mode — the reason to always work on copies.
 - **Automation needs critical review**: my own agent produced a false positive that I had to understand and fix.
+
+## 📂 Repository structure
+```
+android-forensics-pixel3/
+├── README.md
+├── report/        Android11_Forensic_Report.pdf (full report, 41 pages)
+├── screenshots/   figures used in this README
+└── scripts/       forensic_agent.py (v1), forensic_agent_v2.py, forensic_agent_v3.py + usage
+```
 
 ---
 
